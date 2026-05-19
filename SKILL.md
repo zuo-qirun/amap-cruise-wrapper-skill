@@ -9,6 +9,8 @@ description: Patch AMap Auto / AutoNavi Android APKs so CameraLightInfoWrapper c
 
 Patch an AMap Auto APK so `CameraLightInteract.notifyCameraLightInfosImpl(wrapper)` keeps the original in-car behavior and additionally broadcasts wrapper data for external receivers such as AMap Companion.
 
+This workflow is based on community/third-party AMap repackaging approaches and the wrapper broadcast pattern observed in existing modified packages. The script in this skill packages the verified steps for this project; it does not claim the underlying wrapper-hook idea as original.
+
 The patch emits:
 
 - `Action`: `AUTONAVI_STANDARD_BROADCAST_SEND`
