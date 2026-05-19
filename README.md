@@ -73,10 +73,10 @@ The verified patched AMap 9.1.0.600087 build is attached to the release:
 https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/tag/v20260519-cruise-wrapper
 ```
 
-Repository mirror/proxy for regions where GitHub is unstable:
+Repository ZIP mirror/proxy for regions where GitHub is unstable:
 
 ```text
-https://gh.llkk.cc/https://github.com/zuo-qirun/amap-cruise-wrapper-skill
+https://gh-proxy.com/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/archive/refs/heads/master.zip
 ```
 
 Direct APK:
