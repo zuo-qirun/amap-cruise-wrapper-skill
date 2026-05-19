@@ -1,0 +1,95 @@
+---
+name: patch-amap-cruise-wrapper
+description: Patch AMap Auto / AutoNavi Android APKs so CameraLightInfoWrapper cruise traffic-light data is rebroadcast as AUTONAVI_STANDARD_BROADCAST_SEND with full lightsData JSON, lightsCount, clearLights signals, and compatibility extras. Use when modifying 高德地图车机版 APKs for AMap Companion cruise traffic-light countdown support, especially CameraLightInteract.smali / CameraLightInfoWrapper tasks.
+---
+
+# Patch AMap Cruise Wrapper
+
+## Purpose
+
+Patch an AMap Auto APK so `CameraLightInteract.notifyCameraLightInfosImpl(wrapper)` keeps the original in-car behavior and additionally broadcasts wrapper data for external receivers such as AMap Companion.
+
+The patch emits:
+
+- `Action`: `AUTONAVI_STANDARD_BROADCAST_SEND`
+- `KEY_TYPE`: `0xEAA9`
+- `lightsData`: JSON array of every `CameraLightInfo` in `wrapper.a`
+- `lightsCount`: wrapper list size
+- `clearLights` and `EXTRA_CLEAR_LIGHTS`: `true` when wrapper/list is empty
+- Compatibility extras from the first light: `trafficLightStatus`, `redLightCountDownSeconds`, `dir`, `waitRound`, `showType`
+
+## Quick Workflow
+
+1. Work in an ASCII path when possible.
+2. Decode with apktool using `-r` to avoid fragile resource rebuild failures.
+3. Patch `smali/com/autonavi/amapauto/CameraLightInfo/CameraLightInteract.smali`.
+4. Keep original calls to `CruiseTrafficLightVoice.setCameraLightInfoWrapper(wrapper)` and `vh0.e().a(wrapper)`.
+5. Add helper methods:
+   - `buildLightsJson(Ljava/util/List;)Ljava/lang/String;`
+   - `sendAmapCompanionCruiseBroadcast(CameraLightInfoWrapper)`
+6. Rebuild, zipalign, sign, and verify.
+
+Prefer using `scripts/patch-amap-cruise-wrapper.ps1` for the full flow.
+
+## Script Usage
+
+```powershell
+.\scripts\patch-amap-cruise-wrapper.ps1 `
+  -InputApk "D:\path\高德地图.apk" `
+  -OutputApk "D:\path\高德地图_cruise_lightsdata_clear_signed.apk" `
+  -ApktoolJar "D:\path\apktool.jar"
+```
+
+Optional parameters:
+
+- `-WorkDir`: temporary decode/build workspace.
+- `-BuildToolsDir`: Android SDK build-tools directory containing `zipalign.exe` and `apksigner.bat`.
+- `-Keystore`: signing keystore, default `$env:USERPROFILE\.android\debug.keystore`.
+- `-KeyAlias`, `-StorePass`, `-KeyPass`: signing credentials.
+
+## Smali Checks
+
+After patching, verify the smali contains:
+
+- `buildLightsJson`
+- `sendAmapCompanionCruiseBroadcast`
+- `lightsData`
+- `lightsCount`
+- `clearLights`
+- `EXTRA_CLEAR_LIGHTS`
+- `if-lt v4, v0, :loop_body` in the JSON loop
+
+The JSON loop must not use the inverted bug `if-lt v4, v0, :loop_end`; that produces `[]` for non-empty lists.
+
+## Validation
+
+At minimum:
+
+```powershell
+java -jar apktool.jar b decoded_nores -o unsigned.apk
+zipalign -p -f 4 unsigned.apk aligned.apk
+apksigner sign --ks debug.keystore --out signed.apk aligned.apk
+apksigner verify --verbose signed.apk
+```
+
+If installing on a device:
+
+```powershell
+adb install -r signed.apk
+adb logcat -c
+adb shell monkey -p com.autonavi.amapClone -c android.intent.category.LAUNCHER 1
+```
+
+Watch for:
+
+- `VerifyError`
+- `NoSuchMethodError`
+- `ClassCastException`
+- `AndroidRuntime`
+- `CameraLightInteract`
+
+## Receiver Contract
+
+Receivers should treat `clearLights=true` or `EXTRA_CLEAR_LIGHTS=true` as an immediate clear signal.
+
+For non-empty `lightsData`, parse all entries. Wrapper status values are not always the same as standard navigation traffic-light broadcasts; normalize in the receiver if needed. In the tested Chery/AMap 9.1.0 flow, wrapper status behaved as `0=red`, `1=green`.

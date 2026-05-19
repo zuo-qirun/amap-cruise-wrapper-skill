@@ -1,0 +1,4 @@
+interface:
+  display_name: "Patch AMap Cruise Wrapper"
+  short_description: "Patch AMap APKs for cruise traffic-light wrapper broadcasts."
+  default_prompt: "Use $patch-amap-cruise-wrapper to patch this AMap Auto APK so AMap Companion can read cruise traffic-light wrapper data."
