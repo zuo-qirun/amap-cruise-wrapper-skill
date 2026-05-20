@@ -1,33 +1,36 @@
-# Patch AMap Cruise Wrapper Skill
+# 高德巡航红绿灯 Wrapper 补丁 Skill
 
-This repository is a portable AI-agent skill for patching AMap Auto / AutoNavi APKs so cruise traffic-light wrapper data can be consumed by AMap Companion.
+这个仓库是一个可移植的 AI Agent skill，用于修改高德地图车机版 / AMap Auto APK，让巡航红绿灯的 `CameraLightInfoWrapper` 数据可以被 AMap Companion 读取。
 
-The wrapper patching method is based on community/third-party AMap repackaging approaches. This repository documents and automates the specific implementation verified for AMap Companion: broadcasting `CameraLightInfoWrapper` as `lightsData` JSON plus clear signals.
+本方法参考了社区和第三方高德改包方案中的 wrapper 挂钩与广播思路。本仓库只是把已经在 AMap Companion 项目中验证过的具体流程整理、文档化并脚本化，不声明底层改包思路为原创。
 
-## AI Prompt
+## 给 AI 的提示词
 
-Use this prompt with Codex or Claude Code:
+在 Codex 或 Claude Code 中可以这样提示：
 
 ```text
 Use $patch-amap-cruise-wrapper to patch this AMap Auto APK so AMap Companion can read cruise traffic-light wrapper data.
 ```
 
-If the agent does not auto-discover the skill, point it at this repository path and ask it to read `SKILL.md`.
+如果 AI 没有自动发现 skill，请把它指向本仓库路径，并要求读取 `SKILL.md`。
 
-## Compatibility
+## 兼容性
 
-This repository is both Codex-skill and Claude Code-skill compatible because the skill lives at the repository root and uses the standard `SKILL.md` layout.
+本仓库同时兼容 Codex skill 和 Claude Code skill，因为 skill 文件位于仓库根目录，并使用标准 `SKILL.md` 布局。
 
-For Codex, clone or install this folder as a Codex skill.
+Codex 使用方式：
 
-For Claude Code, clone it into one of these locations:
+- 将本仓库克隆或安装到 Codex skills 目录。
+- 在任务中引用 `$patch-amap-cruise-wrapper`。
+
+Claude Code 使用方式：
 
 ```text
 ~/.claude/skills/patch-amap-cruise-wrapper
 <project>/.claude/skills/patch-amap-cruise-wrapper
 ```
 
-Claude Code and Codex can both use the bundled PowerShell script:
+Codex 和 Claude Code 都可以调用仓库内的 PowerShell 脚本：
 
 ```powershell
 .\scripts\patch-amap-cruise-wrapper.ps1 `
@@ -36,57 +39,64 @@ Claude Code and Codex can both use the bundled PowerShell script:
   -ApktoolJar "D:\path\apktool.jar"
 ```
 
-## Principle
+## 原理
 
-AMap Auto receives cruise traffic-light data through `CameraLightInfoWrapper`. The original flow updates internal car UI components, but external companion apps usually cannot read the full wrapper list.
+高德地图车机版在巡航时会通过 `CameraLightInfoWrapper` 接收红绿灯数据。原始流程通常只更新高德内部语音、车机 UI 或仪表相关组件，外部伴侣应用无法稳定读取完整的多方向红绿灯列表。
 
-This skill patches:
+这个 skill 修改的核心文件是：
 
 ```text
 com/autonavi/amapauto/CameraLightInfo/CameraLightInteract.smali
 ```
 
-The patched method keeps original behavior:
+补丁会保留原始行为：
 
 ```text
 CruiseTrafficLightVoice.setCameraLightInfoWrapper(wrapper)
 vh0.e().a(wrapper)
 ```
 
-It also sends:
+同时额外发送广播：
 
 ```text
 Action: AUTONAVI_STANDARD_BROADCAST_SEND
 KEY_TYPE: 0xEAA9
 lightsData: [{"status":0,"countdown":18,"dir":1,"waitNum":0,"showType":...}, ...]
-lightsCount: list size
-clearLights / EXTRA_CLEAR_LIGHTS: true when wrapper or wrapper.a is empty
+lightsCount: 列表数量
+clearLights / EXTRA_CLEAR_LIGHTS: wrapper 或 wrapper.a 为空时为 true
 ```
 
-Receivers can parse every item in `lightsData`, so left-turn and straight lights at the same junction can be displayed at the same time.
+接收方解析 `lightsData` 中的每一项，就可以在同一路口同时显示左转、直行等多个方向的红绿灯。
 
-## Download
+## 下载
 
-The verified patched AMap 9.1.0.600087 build is attached to the release:
+已验证的高德地图 9.1.0.600087 改包版本在 Release 中：
 
 ```text
 https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/tag/v20260519-cruise-wrapper
 ```
 
-Repository ZIP mirror/proxy for regions where GitHub is unstable:
+仓库 ZIP 镜像，适合 GitHub 访问不稳定地区下载 skill：
 
 ```text
 https://gh-proxy.com/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/archive/refs/heads/master.zip
 ```
 
-Direct APK:
+已改高德 APK 原站：
 
 ```text
 https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/download/v20260519-cruise-wrapper/_9.1.0.600087_cruise_lightsdata_clear_signed.apk
 ```
 
-Mirror/proxy direct APK for regions where GitHub is unstable:
+已改高德 APK 镜像：
 
 ```text
 https://gh.llkk.cc/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/download/v20260519-cruise-wrapper/_9.1.0.600087_cruise_lightsdata_clear_signed.apk
 ```
+
+## 注意事项
+
+- 建议在 ASCII 路径下解包、构建和签名，减少 apktool、build-tools 或脚本对中文路径的兼容问题。
+- 修改 APK 前请自行确认授权、合规性和实际使用风险。
+- 不同高德版本、车型包和 ROM 可能存在 smali 类名或字段差异；脚本适用于已验证的目标结构，遇到差异时需要人工复核。
+- AMap Companion 侧应优先解析 `lightsData`，并把 `clearLights=true` 或 `EXTRA_CLEAR_LIGHTS=true` 当作立即清除旧倒计时的信号。
