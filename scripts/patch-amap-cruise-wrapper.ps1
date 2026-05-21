@@ -68,6 +68,15 @@ foreach ($path in @($InputApk, $ApktoolJar, $zipalign, $apksigner, $Keystore)) {
     }
 }
 
+try {
+    $apktoolVersion = (& java -jar $ApktoolJar --version 2>$null | Select-Object -First 1).Trim()
+    if ($apktoolVersion -and $apktoolVersion -ne "2.9.3") {
+        Write-Warning "This workflow was verified with apktool 2.9.3. Version $apktoolVersion may change output size or break AMap Auto startup checks."
+    }
+} catch {
+    Write-Warning "Could not detect apktool version. This workflow is verified with apktool 2.9.3."
+}
+
 $decoded = Join-Path $WorkDir "decoded_nores"
 $unsigned = Join-Path $WorkDir "patched_unsigned.apk"
 $aligned = Join-Path $WorkDir "patched_aligned.apk"

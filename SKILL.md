@@ -23,13 +23,15 @@ The patch emits:
 ## Quick Workflow
 
 1. Work in an ASCII path when possible.
-2. Decode with apktool using `-r` to avoid fragile resource rebuild failures.
-3. Patch `smali/com/autonavi/amapauto/CameraLightInfo/CameraLightInteract.smali`.
-4. Keep original calls to `CruiseTrafficLightVoice.setCameraLightInfoWrapper(wrapper)` and `vh0.e().a(wrapper)`.
-5. Add helper methods:
+2. Prefer apktool `2.9.3`. Newer apktool versions such as `3.x` or `2.12.x` may change output size or trigger AMap Auto startup checks.
+3. Decode with apktool using `-r` to avoid fragile resource rebuild failures.
+4. Patch `smali/com/autonavi/amapauto/CameraLightInfo/CameraLightInteract.smali`.
+5. Keep original calls to `CruiseTrafficLightVoice.setCameraLightInfoWrapper(wrapper)` and `vh0.e().a(wrapper)`.
+6. Preserve any existing full-feature, startup-check, signature-check, or `ttsSettings.txt` modifications when patching an already-modified APK.
+7. Add helper methods:
    - `buildLightsJson(Ljava/util/List;)Ljava/lang/String;`
    - `sendAmapCompanionCruiseBroadcast(CameraLightInfoWrapper)`
-6. Rebuild, zipalign, sign, and verify.
+8. Rebuild, zipalign, sign, and verify.
 
 Prefer using `scripts/patch-amap-cruise-wrapper.ps1` for the full flow.
 
@@ -89,6 +91,9 @@ Watch for:
 - `ClassCastException`
 - `AndroidRuntime`
 - `CameraLightInteract`
+- AMap Auto startup dialogs such as "please download the official version from amapauto.com"; this usually means the target APK has startup/signature checks that must be preserved or bypassed separately.
+
+If the rebuilt APK is much larger than expected or fails at startup, retry with apktool `2.9.3` before changing the smali patch.
 
 ## Receiver Contract
 

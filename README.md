@@ -97,6 +97,9 @@ https://gh.llkk.cc/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releas
 ## 注意事项
 
 - 建议在 ASCII 路径下解包、构建和签名，减少 apktool、build-tools 或脚本对中文路径的兼容问题。
+- 本项目本地验证使用 `apktool 2.9.3`。如果使用 `apktool 3.x`、`2.12.x` 等版本后出现 APK 体积明显变大、安装后无法启动等问题，请先换回 `2.9.3` 重新解包和构建。
+- 如果安装后弹出“应用出现异常错误，无法正常使用，请到 amapauto.com 官网下载使用正式版本重新安装”，通常说明目标高德 APK 存在启动校验或签名校验。此时需要先处理或保留原改版里的校验绕过逻辑，再叠加本 skill 的 wrapper 广播补丁。
 - 修改 APK 前请自行确认授权、合规性和实际使用风险。
 - 不同高德版本、车型包和 ROM 可能存在 smali 类名或字段差异；脚本适用于已验证的目标结构，遇到差异时需要人工复核。
+- 对其它用户的“全功能改版”APK 叠加补丁时，要提醒 AI 保留原有全功能逻辑、`ttsSettings.txt` 行为、启动校验绕过和签名校验绕过，只新增巡航红绿灯 wrapper 广播逻辑。
 - AMap Companion 侧应优先解析 `lightsData`，并把 `clearLights=true` 或 `EXTRA_CLEAR_LIGHTS=true` 当作立即清除旧倒计时的信号。
