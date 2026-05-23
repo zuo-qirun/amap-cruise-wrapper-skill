@@ -11,7 +11,7 @@ Patch an AMap Auto APK so `CameraLightInteract.notifyCameraLightInfosImpl(wrappe
 
 This workflow is based on community/third-party AMap repackaging approaches and the wrapper broadcast pattern observed in existing modified packages. The script in this skill packages the verified steps for this project; it does not claim the underlying wrapper-hook idea as original.
 
-The patch emits:
+The preferred patch is a hybrid wrapper broadcast:
 
 - `Action`: `AUTONAVI_STANDARD_BROADCAST_SEND`
 - `KEY_TYPE`: `0xEAA9`
@@ -19,6 +19,8 @@ The patch emits:
 - `lightsCount`: wrapper list size
 - `clearLights` and `EXTRA_CLEAR_LIGHTS`: `true` when wrapper/list is empty
 - Compatibility extras from the first light: `trafficLightStatus`, `redLightCountDownSeconds`, `dir`, `waitRound`, `showType`
+
+Do not replace AMap's internal behavior with a broadcast-only method. Keep the original in-car calls, add the full-list `lightsData` broadcast, add explicit clear signals, and keep first-light compatibility extras for older receivers.
 
 ## Quick Workflow
 
@@ -28,10 +30,11 @@ The patch emits:
 4. Patch `smali/com/autonavi/amapauto/CameraLightInfo/CameraLightInteract.smali`.
 5. Keep original calls to `CruiseTrafficLightVoice.setCameraLightInfoWrapper(wrapper)` and `vh0.e().a(wrapper)`.
 6. Preserve any existing full-feature, startup-check, signature-check, or `ttsSettings.txt` modifications when patching an already-modified APK.
-7. Add helper methods:
+7. Pay special attention to AMap signature/startup checks, including known `b90` check code in some builds. Do not remove a third-party package's existing `b90` bypass or official-signature bypass while adding the wrapper patch.
+8. Add helper methods:
    - `buildLightsJson(Ljava/util/List;)Ljava/lang/String;`
    - `sendAmapCompanionCruiseBroadcast(CameraLightInfoWrapper)`
-8. Rebuild, zipalign, sign, and verify.
+9. Rebuild, zipalign, sign, and verify.
 
 Prefer using `scripts/patch-amap-cruise-wrapper.ps1` for the full flow.
 
@@ -91,7 +94,7 @@ Watch for:
 - `ClassCastException`
 - `AndroidRuntime`
 - `CameraLightInteract`
-- AMap Auto startup dialogs such as "please download the official version from amapauto.com"; this usually means the target APK has startup/signature checks that must be preserved or bypassed separately.
+- AMap Auto startup dialogs such as "please download the official version from amapauto.com"; this usually means the target APK has startup/signature checks that must be preserved or bypassed separately. In some known builds this logic is around `b90`, so inspect and preserve any existing `b90` bypass before rebuilding.
 
 If the rebuilt APK is much larger than expected or fails at startup, retry with apktool `2.9.3` before changing the smali patch.
 

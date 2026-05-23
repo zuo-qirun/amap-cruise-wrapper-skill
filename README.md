@@ -49,7 +49,7 @@ Codex 和 Claude Code 都可以调用仓库内的 PowerShell 脚本：
 com/autonavi/amapauto/CameraLightInfo/CameraLightInteract.smali
 ```
 
-补丁会保留原始行为：
+补丁采用“混合广播”方式：保留原始行为，不把高德内部流程替换成纯广播：
 
 ```text
 CruiseTrafficLightVoice.setCameraLightInfoWrapper(wrapper)
@@ -68,12 +68,22 @@ clearLights / EXTRA_CLEAR_LIGHTS: wrapper 或 wrapper.a 为空时为 true
 
 接收方解析 `lightsData` 中的每一项，就可以在同一路口同时显示左转、直行等多个方向的红绿灯。
 
-## 下载
-
-已验证的高德地图 9.1.0.600087 改包版本在 Release 中：
+为空或离开支持路段时，补丁会发送：
 
 ```text
-https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/tag/v20260519-cruise-wrapper
+lightsData: []
+lightsCount: 0
+clearLights / EXTRA_CLEAR_LIGHTS: true
+```
+
+这样伴侣可以立即清除旧倒计时，避免不在路上时继续显示秒数。为了兼容旧接收方，补丁还会从第一盏灯补发 `trafficLightStatus`、`redLightCountDownSeconds`、`dir`、`waitRound`、`showType` 等单灯字段。
+
+## 下载
+
+已验证的高德地图改包版本在 Release 中，APK 文件名使用英文，便于下载和镜像站转发：
+
+```text
+https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/tag/v20260523-cruise-wrapper
 ```
 
 仓库 ZIP 镜像，适合 GitHub 访问不稳定地区下载 skill：
@@ -85,20 +95,20 @@ https://gh-proxy.com/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/arch
 已改高德 APK 原站：
 
 ```text
-https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/download/v20260519-cruise-wrapper/_9.1.0.600087_cruise_lightsdata_clear_signed.apk
+https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/download/v20260523-cruise-wrapper/amap-auto-cruise-wrapper-20260523.apk
 ```
 
 已改高德 APK 镜像：
 
 ```text
-https://gh.llkk.cc/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/download/v20260519-cruise-wrapper/_9.1.0.600087_cruise_lightsdata_clear_signed.apk
+https://gh.llkk.cc/https://github.com/zuo-qirun/amap-cruise-wrapper-skill/releases/download/v20260523-cruise-wrapper/amap-auto-cruise-wrapper-20260523.apk
 ```
 
 ## 注意事项
 
 - 建议在 ASCII 路径下解包、构建和签名，减少 apktool、build-tools 或脚本对中文路径的兼容问题。
 - 本项目本地验证使用 `apktool 2.9.3`。如果使用 `apktool 3.x`、`2.12.x` 等版本后出现 APK 体积明显变大、安装后无法启动等问题，请先换回 `2.9.3` 重新解包和构建。
-- 如果安装后弹出“应用出现异常错误，无法正常使用，请到 amapauto.com 官网下载使用正式版本重新安装”，通常说明目标高德 APK 存在启动校验或签名校验。此时需要先处理或保留原改版里的校验绕过逻辑，再叠加本 skill 的 wrapper 广播补丁。
+- 如果安装后弹出“应用出现异常错误，无法正常使用，请到 amapauto.com 官网下载使用正式版本重新安装”，通常说明目标高德 APK 存在启动校验或签名校验。部分版本的相关逻辑在 `b90` 附近；此时需要先处理或保留原改版里的 `b90` / 签名校验绕过逻辑，再叠加本 skill 的 wrapper 广播补丁。
 - 修改 APK 前请自行确认授权、合规性和实际使用风险。
 - 不同高德版本、车型包和 ROM 可能存在 smali 类名或字段差异；脚本适用于已验证的目标结构，遇到差异时需要人工复核。
 - 对其它用户的“全功能改版”APK 叠加补丁时，要提醒 AI 保留原有全功能逻辑、`ttsSettings.txt` 行为、启动校验绕过和签名校验绕过，只新增巡航红绿灯 wrapper 广播逻辑。
